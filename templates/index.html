@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title if title else 'Telegram Bot Hosting' }}</title>
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
-    
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -47,55 +43,8 @@
         }
         .success { background: #d4edda; color: #155724; }
         .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
     </style>
-    
-    <script>
-        // Firebase Configuration from Flask
-        const firebaseConfig = {{ firebase_config|tojson }};
-        
-        // Initialize Firebase
-        document.addEventListener('DOMContentLoaded', function() {
-            try {
-                const app = firebase.initializeApp(firebaseConfig);
-                const db = firebase.firestore();
-                console.log('✅ Firebase başlatıldı:', firebaseConfig.projectId);
-                
-                // Update status
-                document.getElementById('firebase-status').innerHTML = 
-                    '<div class="success">✅ Firebase bağlantısı başarılı!</div>';
-            } catch (error) {
-                console.error('Firebase hatası:', error);
-                document.getElementById('firebase-status').innerHTML = 
-                    '<div class="error">❌ Firebase hatası: ' + error.message + '</div>';
-            }
-        });
-        
-        async function testAPI() {
-            try {
-                const response = await fetch('/health');
-                const data = await response.json();
-                document.getElementById('api-result').innerHTML = 
-                    '<div class="success">✅ API Çalışıyor:<br>' + 
-                    JSON.stringify(data, null, 2) + '</div>';
-            } catch (error) {
-                document.getElementById('api-result').innerHTML = 
-                    '<div class="error">❌ API Hatası: ' + error.message + '</div>';
-            }
-        }
-        
-        async function testFirebaseAPI() {
-            try {
-                const response = await fetch('/api/firebase-test');
-                const data = await response.json();
-                document.getElementById('firebase-api-result').innerHTML = 
-                    '<div class="success">✅ Firebase API:<br>' + 
-                    JSON.stringify(data, null, 2) + '</div>';
-            } catch (error) {
-                document.getElementById('firebase-api-result').innerHTML = 
-                    '<div class="error">❌ Firebase API Hatası: ' + error.message + '</div>';
-            }
-        }
-    </script>
 </head>
 <body>
     <div class="container">
@@ -119,5 +68,72 @@
         <h2>Firebase Bilgileri</h2>
         <pre>{{ firebase_config|tojson(indent=2) }}</pre>
     </div>
+
+    <!-- FIREBASE SDK - BODY'NİN EN ALTINDA -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
+    
+    <script>
+        // Firebase Configuration from Flask
+        const firebaseConfig = {{ firebase_config|tojson }};
+        
+        // Initialize Firebase - sayfa yüklendikten sonra
+        document.addEventListener('DOMContentLoaded', function() {
+            // Firebase script'i yüklendikten sonra çalıştır
+            if (typeof firebase === 'undefined') {
+                document.getElementById('firebase-status').innerHTML = 
+                    '<div class="error">❌ Firebase SDK yüklenemedi!</div>';
+                return;
+            }
+            
+            try {
+                const app = firebase.initializeApp(firebaseConfig);
+                const db = firebase.firestore();
+                
+                // Test: Firebase bağlantısını kontrol et
+                db.collection('test').limit(1).get()
+                    .then(() => {
+                        document.getElementById('firebase-status').innerHTML = 
+                            '<div class="success">✅ Firebase bağlantısı başarılı!</div>';
+                    })
+                    .catch(error => {
+                        document.getElementById('firebase-status').innerHTML = 
+                            '<div class="warning">⚠️ Firebase bağlandı ama Firestore erişilemiyor: ' + error.message + '</div>';
+                    });
+                    
+                console.log('Firebase başlatıldı:', firebaseConfig.projectId);
+                
+            } catch (error) {
+                document.getElementById('firebase-status').innerHTML = 
+                    '<div class="error">❌ Firebase hatası: ' + error.message + '</div>';
+            }
+        });
+        
+        async function testAPI() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                document.getElementById('api-result').innerHTML = 
+                    '<div class="success">✅ API Çalışıyor:<br><pre>' + 
+                    JSON.stringify(data, null, 2) + '</pre></div>';
+            } catch (error) {
+                document.getElementById('api-result').innerHTML = 
+                    '<div class="error">❌ API Hatası: ' + error.message + '</div>';
+            }
+        }
+        
+        async function testFirebaseAPI() {
+            try {
+                const response = await fetch('/api/firebase-test');
+                const data = await response.json();
+                document.getElementById('firebase-api-result').innerHTML = 
+                    '<div class="success">✅ Firebase API:<br><pre>' + 
+                    JSON.stringify(data, null, 2) + '</pre></div>';
+            } catch (error) {
+                document.getElementById('firebase-api-result').innerHTML = 
+                    '<div class="error">❌ Firebase API Hatası: ' + error.message + '</div>';
+            }
+        }
+    </script>
 </body>
 </html>
