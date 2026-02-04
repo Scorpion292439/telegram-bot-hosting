@@ -1,583 +1,522 @@
-﻿from flask import Flask, render_template_string, request, jsonify
-import os
+﻿import os
+import sys
+import time
+import json
+import uuid
+import threading
 import subprocess
 import datetime
-import tempfile
+from pathlib import Path
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_file, Response
+from flask_cors import CORS
+from werkzeug.utils import secure_filename
+import logging
 
+# Flask uygulaması
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'python-hosting-secret-key-2026')
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
+CORS(app)
 
-# ========== ANA SAYFA ==========
-@app.route('/')
-def home():
-    return '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Python Hosting Platform</title>
-        <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-                font-family: 'Segoe UI', Arial, sans-serif;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                min-height: 100vh;
-                color: white;
-                padding: 20px;
-            }
-            .container {
-                max-width: 1000px;
-                margin: 0 auto;
-                text-align: center;
-            }
-            header {
-                margin-bottom: 50px;
-            }
-            h1 {
-                font-size: 48px;
-                margin-bottom: 20px;
-                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            }
-            .tagline {
-                font-size: 20px;
-                opacity: 0.9;
-                margin-bottom: 40px;
-            }
-            .features {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-                gap: 25px;
-                margin-bottom: 50px;
-            }
-            .feature-card {
-                background: rgba(255,255,255,0.1);
-                backdrop-filter: blur(10px);
-                padding: 30px;
-                border-radius: 20px;
-                transition: transform 0.3s;
-            }
-            .feature-card:hover {
-                transform: translateY(-10px);
-                background: rgba(255,255,255,0.2);
-            }
-            .feature-icon {
-                font-size: 48px;
-                margin-bottom: 20px;
-            }
-            .feature-card h3 {
-                font-size: 24px;
-                margin-bottom: 15px;
-            }
-            .nav-buttons {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 20px;
-                margin-top: 40px;
-            }
-            .btn {
-                display: inline-flex;
-                align-items: center;
-                gap: 10px;
-                background: white;
-                color: #667eea;
-                padding: 18px 35px;
-                border-radius: 15px;
-                text-decoration: none;
-                font-size: 18px;
-                font-weight: bold;
-                transition: all 0.3s;
-                border: none;
-                cursor: pointer;
-            }
-            .btn:hover {
-                transform: scale(1.05);
-                box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            }
-            .btn-large {
-                padding: 22px 45px;
-                font-size: 20px;
-            }
-            footer {
-                margin-top: 60px;
-                opacity: 0.7;
-                font-size: 14px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <header>
-                <h1>🚀 Python Hosting Platform</h1>
-                <p class="tagline">Python dosyalarını yükle, 24/7 çalıştır, loglarını izle!</p>
-            </header>
-            
-            <div class="features">
-                <div class="feature-card">
-                    <div class="feature-icon">📁</div>
-                    <h3>Python Yükle & Çalıştır</h3>
-                    <p>Python dosyanızı sürükleyip bırakın, otomatik çalışsın.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">🤖</div>
-                    <h3>Telegram Bot Hosting</h3>
-                    <p>Telegram botunuzu oluşturun ve 24/7 çalıştırın.</p>
-                </div>
-                <div class="feature-card">
-                    <div class="feature-icon">📊</div>
-                    <h3>Real-time Loglar</h3>
-                    <p>Script'lerinizin çıktılarını anlık takip edin.</p>
-                </div>
-            </div>
-            
-            <div class="nav-buttons">
-                <a href="/upload" class="btn btn-large">
-                    <span>📤</span> Python Yükle
-                </a>
-                <a href="/telegram-bot" class="btn btn-large">
-                    <span>🤖</span> Telegram Bot
-                </a>
-                <a href="/admin" class="btn">
-                    <span>⚙️</span> Admin Panel
-                </a>
-                <a href="/health" class="btn">
-                    <span>📊</span> Health Check
-                </a>
-            </div>
-            
-            <footer>
-                <p>🔥 Firebase entegre | 📱 Responsive tasarım | ⚡ Hızlı deploy | Render.com üzerinde</p>
-            </footer>
-        </div>
-    </body>
-    </html>
-    '''
+# Yapılandırma
+UPLOAD_FOLDER = 'uploads'
+LOG_FOLDER = 'logs'
+ALLOWED_EXTENSIONS = {'py', 'txt', 'json'}
+DATABASE_FILE = 'database.json'
 
-# ========== UPLOAD SAYFASI ==========
-@app.route('/upload')
-def upload_page():
-    return '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Python Dosyası Yükle</title>
-        <style>
-            body { 
-                font-family: Arial, sans-serif;
-                padding: 40px;
-                max-width: 600px;
-                margin: 0 auto;
-                background: #f5f5f5;
-                min-height: 100vh;
-            }
-            .upload-container {
-                background: white;
-                padding: 40px;
-                border-radius: 20px;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            }
-            h1 {
-                color: #333;
-                margin-bottom: 10px;
-            }
-            .subtitle {
-                color: #666;
-                margin-bottom: 30px;
-            }
-            .upload-area {
-                border: 3px dashed #667eea;
-                border-radius: 15px;
-                padding: 50px 30px;
-                text-align: center;
-                margin: 30px 0;
-                background: #f8f9ff;
-                cursor: pointer;
-                transition: all 0.3s;
-            }
-            .upload-area:hover {
-                background: #eef1ff;
-                border-color: #5a67d8;
-            }
-            .upload-area.dragover {
-                background: #e1e7ff;
-                border-color: #4c51bf;
-            }
-            .upload-icon {
-                font-size: 64px;
-                color: #667eea;
-                margin-bottom: 20px;
-            }
-            .file-input {
-                display: none;
-            }
-            .selected-file {
-                margin: 20px 0;
-                padding: 15px;
-                background: #e8f5e9;
-                border-radius: 10px;
-                display: none;
-            }
-            .btn {
-                background: #667eea;
-                color: white;
-                padding: 15px 40px;
-                border: none;
-                border-radius: 10px;
-                font-size: 18px;
-                font-weight: bold;
-                cursor: pointer;
-                transition: all 0.3s;
-                display: inline-block;
-                text-decoration: none;
-            }
-            .btn:hover {
-                background: #5a67d8;
-                transform: translateY(-2px);
-            }
-            .btn:disabled {
-                background: #ccc;
-                cursor: not-allowed;
-            }
-            .back-link {
-                display: inline-block;
-                margin-top: 30px;
-                color: #667eea;
-                text-decoration: none;
-            }
-            .result {
-                margin-top: 30px;
-                padding: 20px;
-                border-radius: 10px;
-                display: none;
-            }
-            .success { background: #d4edda; color: #155724; }
-            .error { background: #f8d7da; color: #721c24; }
-        </style>
-    </head>
-    <body>
-        <div class="upload-container">
-            <h1>📤 Python Dosyası Yükle</h1>
-            <p class="subtitle">.py uzantılı Python dosyanızı yükleyin, otomatik çalıştırın</p>
-            
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">📁</div>
-                <h3>Dosyayı sürükleyip bırakın</h3>
-                <p>veya tıklayarak seçin</p>
-                <input type="file" id="fileInput" class="file-input" accept=".py">
-            </div>
-            
-            <div class="selected-file" id="selectedFile">
-                <strong>Seçilen dosya:</strong> <span id="fileName"></span>
-                <br><small id="fileSize"></small>
-            </div>
-            
-            <button class="btn" id="uploadBtn" disabled>Yükle ve Çalıştır</button>
-            
-            <div class="result" id="result"></div>
-            
-            <a href="/" class="back-link">← Ana Sayfaya Dön</a>
-        </div>
-        
-        <script>
-            const uploadArea = document.getElementById('uploadArea');
-            const fileInput = document.getElementById('fileInput');
-            const selectedFile = document.getElementById('selectedFile');
-            const fileName = document.getElementById('fileName');
-            const fileSize = document.getElementById('fileSize');
-            const uploadBtn = document.getElementById('uploadBtn');
-            const resultDiv = document.getElementById('result');
-            
-            // Dosya seçme
-            uploadArea.addEventListener('click', () => fileInput.click());
-            
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) {
-                    const file = e.target.files[0];
-                    fileName.textContent = file.name;
-                    fileSize.textContent = \(\ KB)\;
-                    selectedFile.style.display = 'block';
-                    uploadBtn.disabled = false;
-                }
-            });
-            
-            // Sürükle-bırak
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
-            
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
-            });
-            
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
-                
-                if (e.dataTransfer.files.length > 0) {
-                    const file = e.dataTransfer.files[0];
-                    if (file.name.endsWith('.py')) {
-                        fileInput.files = e.dataTransfer.files;
-                        fileName.textContent = file.name;
-                        fileSize.textContent = \(\ KB)\;
-                        selectedFile.style.display = 'block';
-                        uploadBtn.disabled = false;
-                    } else {
-                        alert('Sadece .py dosyaları yüklenebilir!');
-                    }
-                }
-            });
-            
-            // Upload işlemi
-            uploadBtn.addEventListener('click', async () => {
-                const file = fileInput.files[0];
-                if (!file) return;
-                
-                uploadBtn.disabled = true;
-                uploadBtn.innerHTML = 'Yükleniyor...';
-                resultDiv.style.display = 'none';
-                
-                const formData = new FormData();
-                formData.append('file', file);
-                
-                try {
-                    const response = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const result = await response.text();
-                    
-                    resultDiv.innerHTML = result;
-                    resultDiv.className = 'result success';
-                    resultDiv.style.display = 'block';
-                    
-                    // Formu sıfırla
-                    fileInput.value = '';
-                    selectedFile.style.display = 'none';
-                    uploadBtn.disabled = true;
-                    uploadBtn.innerHTML = 'Yükle ve Çalıştır';
-                    
-                } catch (error) {
-                    resultDiv.innerHTML = \<h3>❌ Hata!</h3><p>\</p>\;
-                    resultDiv.className = 'result error';
-                    resultDiv.style.display = 'block';
-                    uploadBtn.disabled = false;
-                    uploadBtn.innerHTML = 'Yükle ve Çalıştır';
-                }
-            });
-        </script>
-    </body>
-    </html>
-    '''
+# Klasörleri oluştur
+Path(UPLOAD_FOLDER).mkdir(exist_ok=True)
+Path(LOG_FOLDER).mkdir(exist_ok=True)
 
-# ========== UPLOAD API ==========
-@app.route('/api/upload', methods=['POST'])
-def handle_upload():
-    if 'file' not in request.files:
-        return '''
-        <div class="error">
-            <h3>❌ Dosya seçilmedi!</h3>
-            <p>Lütfen bir Python dosyası seçin.</p>
-            <p><a href="/upload">Tekrar deneyin</a></p>
-        </div>
-        ''', 400
+# Firebase konfigürasyonu
+FIREBASE_CONFIG = {
+    "apiKey": "AIzaSyBbUN60L9CtxvGEDAtQxc0nDUa80nJkyoM",
+    "authDomain": "sscorpion-874a7.firebaseapp.com",
+    "projectId": "sscorpion-874a7",
+    "storageBucket": "sscorpion-874a7.firebasestorage.app",
+    "messagingSenderId": "574381566374",
+    "appId": "1:574381566374:web:2874daf133972ecfd00767",
+    "measurementId": "G-8ZZ71L7D0W"
+}
+
+# Çalışan process'leri takip
+running_processes = {}
+scripts_database = []
+
+# Yardımcı fonksiyonlar
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def get_script_info(script_id):
+    """Script bilgilerini getir"""
+    for script in scripts_database:
+        if script['id'] == script_id:
+            return script
+    return None
+
+def save_script_info(script_info):
+    """Script bilgilerini kaydet"""
+    global scripts_database
+    # Eski kaydı bul ve güncelle
+    for i, script in enumerate(scripts_database):
+        if script['id'] == script_info['id']:
+            scripts_database[i] = script_info
+            break
+    else:
+        # Yeni kayıt ekle
+        scripts_database.append(script_info)
     
-    file = request.files['file']
-    if file.filename == '':
-        return '''
-        <div class="error">
-            <h3>❌ Dosya seçilmedi!</h3>
-            <p>Lütfen bir Python dosyası seçin.</p>
-            <p><a href="/upload">Tekrar deneyin</a></p>
-        </div>
-        ''', 400
-    
-    if not file.filename.endswith('.py'):
-        return '''
-        <div class="error">
-            <h3>❌ Geçersiz dosya tipi!</h3>
-            <p>Sadece .py uzantılı Python dosyaları yüklenebilir.</p>
-            <p><a href="/upload">Tekrar deneyin</a></p>
-        </div>
-        ''', 400
-    
+    # Database'i kaydet
+    save_database()
+
+def load_database():
+    """Database'i yükle"""
+    global scripts_database
     try:
-        # Geçici dosya oluştur
-        import tempfile
-        import os
+        if os.path.exists(DATABASE_FILE):
+            with open(DATABASE_FILE, 'r', encoding='utf-8') as f:
+                scripts_database = json.load(f)
+    except:
+        scripts_database = []
+
+def save_database():
+    """Database'i kaydet"""
+    try:
+        with open(DATABASE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(scripts_database, f, indent=2, ensure_ascii=False, default=str)
+    except:
+        pass
+
+def run_python_script(script_id, filepath):
+    """Python script'ini çalıştır"""
+    log_file = os.path.join(LOG_FOLDER, f"{script_id}.log")
+    
+    # Log dosyasını temizle
+    with open(log_file, 'w', encoding='utf-8') as f:
+        f.write(f"=== Script Başlatıldı: {datetime.datetime.now()} ===\n")
+        f.write(f"=== Dosya: {os.path.basename(filepath)} ===\n")
+        f.write("=" * 50 + "\n")
+    
+    def runner():
+        try:
+            # Process'i başlat
+            process = subprocess.Popen(
+                ['python', filepath],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                universal_newlines=True,
+                encoding='utf-8'
+            )
+            
+            # Process'i kaydet
+            running_processes[script_id] = {
+                'process': process,
+                'start_time': datetime.datetime.now(),
+                'status': 'running'
+            }
+            
+            # Script durumunu güncelle
+            script_info = get_script_info(script_id)
+            if script_info:
+                script_info['status'] = 'running'
+                script_info['start_time'] = datetime.datetime.now().isoformat()
+                save_script_info(script_info)
+            
+            # Çıktıları log'a yaz
+            with open(log_file, 'a', encoding='utf-8') as log_f:
+                for line in iter(process.stdout.readline, ''):
+                    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    log_line = f"[{timestamp}] {line}"
+                    log_f.write(log_line)
+                    log_f.flush()
+            
+            # Process bitince
+            process.wait()
+            
+            # Script durumunu güncelle
+            script_info = get_script_info(script_id)
+            if script_info:
+                script_info['status'] = 'stopped'
+                script_info['end_time'] = datetime.datetime.now().isoformat()
+                save_script_info(script_info)
+            
+        except Exception as e:
+            # Hata log'u
+            with open(log_file, 'a', encoding='utf-8') as f:
+                f.write(f"\n[ERROR] {str(e)}\n")
+        finally:
+            # Process'i temizle
+            if script_id in running_processes:
+                del running_processes[script_id]
+    
+    # Thread'de çalıştır
+    thread = threading.Thread(target=runner, daemon=True)
+    thread.start()
+    return thread
+
+# Database'i yükle
+load_database()
+
+# ==================== ROUTES ====================
+
+@app.route('/')
+def index():
+    """Ana sayfa"""
+    stats = {
+        'total_scripts': len(scripts_database),
+        'running_scripts': len([s for s in scripts_database if s.get('status') == 'running']),
+        'total_size': sum(s.get('size', 0) for s in scripts_database),
+        'server_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    return render_template('index.html', 
+                         firebase_config=FIREBASE_CONFIG,
+                         stats=stats,
+                         title='Python Hosting Platform')
+
+@app.route('/upload', methods=['GET'])
+def upload_page():
+    """Upload sayfası"""
+    return render_template('upload.html')
+
+@app.route('/api/upload', methods=['POST'])
+def upload_file():
+    """Dosya yükleme API"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'Dosya seçilmedi'}), 400
         
-        # Uploads klasörü oluştur
-        os.makedirs('uploads', exist_ok=True)
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'Dosya seçilmedi'}), 400
+        
+        # Dosya uzantısı kontrolü
+        if not allowed_file(file.filename):
+            return jsonify({'success': False, 'error': 'Sadece .py, .txt, .json dosyaları yüklenebilir'}), 400
+        
+        # Güvenli dosya adı
+        original_name = file.filename
+        filename = secure_filename(original_name)
+        
+        # Benzersiz ID oluştur
+        script_id = f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+        file_id = f"{script_id}_{filename}"
+        filepath = os.path.join(UPLOAD_FOLDER, file_id)
         
         # Dosyayı kaydet
-        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"{timestamp}_{file.filename}"
-        filepath = os.path.join('uploads', filename)
         file.save(filepath)
         
-        # Dosyayı çalıştır
-        result = subprocess.run(
-            ['python', filepath],
-            capture_output=True,
-            text=True,
-            timeout=30  # 30 saniye timeout
-        )
+        # Script bilgileri
+        script_info = {
+            'id': script_id,
+            'file_id': file_id,
+            'original_name': original_name,
+            'filename': filename,
+            'path': filepath,
+            'size': os.path.getsize(filepath),
+            'upload_time': datetime.datetime.now().isoformat(),
+            'status': 'stopped',
+            'type': 'python' if filename.endswith('.py') else 'text'
+        }
         
-        # Sonuç HTML'i oluştur
-        html_output = f'''
-        <div class="success">
-            <h3>✅ Dosya başarıyla yüklendi ve çalıştırıldı!</h3>
-            <p><strong>Dosya:</strong> {file.filename}</p>
-            <p><strong>Boyut:</strong> {(os.path.getsize(filepath) / 1024):.2f} KB</p>
-            <p><strong>Zaman:</strong> {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-            
-            <h4>📊 Çıktı:</h4>
-            <pre style="background: #f8f9fa; padding: 15px; border-radius: 8px; overflow: auto; max-height: 300px;">{result.stdout}</pre>
-        '''
+        # Database'e kaydet
+        save_script_info(script_info)
         
-        if result.stderr:
-            html_output += f'''
-            <h4>⚠️ Hatalar:</h4>
-            <pre style="background: #fff3cd; padding: 15px; border-radius: 8px; overflow: auto; max-height: 200px;">{result.stderr}</pre>
-            '''
-        
-        html_output += '''
-            <div style="margin-top: 20px;">
-                <a href="/upload" class="btn">↻ Başka dosya yükle</a>
-                <a href="/" class="btn">🏠 Ana Sayfa</a>
-            </div>
-        </div>
-        '''
-        
-        return html_output
-        
-    except subprocess.TimeoutExpired:
-        return '''
-        <div class="error">
-            <h3>⏱️ Zaman aşımı!</h3>
-            <p>Script 30 saniyeden fazla çalıştı, güvenlik nedeniyle durduruldu.</p>
-            <p><a href="/upload">Tekrar deneyin</a></p>
-        </div>
-        ''', 408
+        return jsonify({
+            'success': True,
+            'message': 'Dosya başarıyla yüklendi!',
+            'script_id': script_id,
+            'filename': original_name,
+            'size': script_info['size']
+        })
         
     except Exception as e:
-        return f'''
-        <div class="error">
-            <h3>❌ Hata oluştu!</h3>
-            <p>{str(e)}</p>
-            <p><a href="/upload">Tekrar deneyin</a></p>
-        </div>
-        ''', 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
-# ========== TELEGRAM BOT SAYFASI ==========
-@app.route('/telegram-bot')
-def telegram_bot_page():
-    return '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Telegram Bot Oluştur</title>
-        <style>
-            body { font-family: Arial; padding: 40px; max-width: 600px; margin: 0 auto; }
-            h1 { color: #333; }
-            textarea { width: 100%; height: 200px; padding: 10px; margin: 10px 0; }
-            .btn { background: #28a745; color: white; padding: 15px 30px; border: none; border-radius: 10px; }
-        </style>
-    </head>
-    <body>
-        <h1>🤖 Telegram Bot Oluştur</h1>
-        <p>@BotFather'dan aldığınız token'ı girin:</p>
-        <form action="/api/create-bot" method="post">
-            <input type="text" name="token" placeholder="Bot Token" required style="width: 100%; padding: 10px; margin: 10px 0;">
-            <textarea name="code" placeholder="Python kodu (opsiyonel)"></textarea>
-            <button type="submit" class="btn">Bot Oluştur</button>
-        </form>
-        <p><a href="/">← Ana Sayfa</a></p>
-    </body>
-    </html>
-    '''
-
-# ========== ADMIN SAYFASI ==========
-@app.route('/admin')
-def admin_page():
-    return '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Admin Paneli</title>
-        <style>
-            body { font-family: Arial; padding: 40px; max-width: 400px; margin: 0 auto; }
-            h1 { color: #333; }
-            input { width: 100%; padding: 10px; margin: 10px 0; }
-            button { width: 100%; padding: 12px; background: #007bff; color: white; border: none; border-radius: 5px; }
-        </style>
-    </head>
-    <body>
-        <h1>🔐 Admin Girişi</h1>
-        <form action="/admin/login" method="POST">
-            <input type="text" name="username" placeholder="Kullanıcı Adı" required>
-            <input type="password" name="password" placeholder="Şifre" required>
-            <button type="submit">Giriş Yap</button>
-        </form>
-        <p><small>Test: admin / admin123</small></p>
-        <p><a href="/">← Ana Sayfa</a></p>
-    </body>
-    </html>
-    '''
-
-@app.route('/admin/login', methods=['POST'])
-def admin_login():
-    username = request.form.get('username', '')
-    password = request.form.get('password', '')
+@app.route('/api/scripts')
+def get_scripts():
+    """Tüm script'leri listele"""
+    # Script'leri güncelle (çalışan durumlarını kontrol et)
+    for script in scripts_database:
+        script_id = script['id']
+        if script_id in running_processes:
+            script['status'] = 'running'
+        else:
+            if script.get('status') == 'running':
+                script['status'] = 'stopped'
     
-    if username == 'admin' and password == 'admin123':
-        return '''
-        <h1>✅ Giriş Başarılı!</h1>
-        <p>Admin paneline hoş geldiniz.</p>
-        <p><a href="/">Ana Sayfa</a></p>
-        '''
-    else:
-        return '''
-        <h1>❌ Hatalı Giriş!</h1>
-        <p>Kullanıcı adı veya şifre yanlış.</p>
-        <p><a href="/admin">Tekrar Dene</a></p>
-        '''
+    return jsonify({
+        'success': True,
+        'scripts': scripts_database,
+        'total': len(scripts_database),
+        'running': len([s for s in scripts_database if s.get('status') == 'running'])
+    })
 
-# ========== HEALTH CHECK ==========
+@app.route('/api/script/<script_id>/start', methods=['POST'])
+def start_script(script_id):
+    """Script'i başlat"""
+    script_info = get_script_info(script_id)
+    if not script_info:
+        return jsonify({'success': False, 'error': 'Script bulunamadı'}), 404
+    
+    if script_id in running_processes:
+        return jsonify({'success': False, 'error': 'Script zaten çalışıyor'}), 400
+    
+    if not os.path.exists(script_info['path']):
+        return jsonify({'success': False, 'error': 'Dosya bulunamadı'}), 404
+    
+    # Script'i başlat
+    run_python_script(script_id, script_info['path'])
+    
+    return jsonify({
+        'success': True,
+        'message': 'Script başlatıldı!',
+        'script_id': script_id
+    })
+
+@app.route('/api/script/<script_id>/stop', methods=['POST'])
+def stop_script(script_id):
+    """Script'i durdur"""
+    if script_id not in running_processes:
+        return jsonify({'success': False, 'error': 'Script çalışmıyor'}), 400
+    
+    process_info = running_processes[script_id]
+    process = process_info['process']
+    
+    # Process'i durdur
+    process.terminate()
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        process.kill()
+    
+    # Script durumunu güncelle
+    script_info = get_script_info(script_id)
+    if script_info:
+        script_info['status'] = 'stopped'
+        script_info['end_time'] = datetime.datetime.now().isoformat()
+        save_script_info(script_info)
+    
+    # Process'i temizle
+    del running_processes[script_id]
+    
+    return jsonify({
+        'success': True,
+        'message': 'Script durduruldu!',
+        'script_id': script_id
+    })
+
+@app.route('/api/script/<script_id>/logs')
+def get_script_logs(script_id):
+    """Script log'larını getir"""
+    log_file = os.path.join(LOG_FOLDER, f"{script_id}.log")
+    
+    if not os.path.exists(log_file):
+        return jsonify({'success': True, 'logs': [], 'message': 'Log bulunamadı'})
+    
+    try:
+        with open(log_file, 'r', encoding='utf-8') as f:
+            logs = f.readlines()[-200:]  # Son 200 satır
+        return jsonify({'success': True, 'logs': logs})
+    except:
+        return jsonify({'success': False, 'error': 'Log okunamadı'})
+
+@app.route('/api/script/<script_id>/delete', methods=['DELETE'])
+def delete_script(script_id):
+    """Script'i sil"""
+    script_info = get_script_info(script_id)
+    if not script_info:
+        return jsonify({'success': False, 'error': 'Script bulunamadı'}), 404
+    
+    # Çalışıyorsa durdur
+    if script_id in running_processes:
+        stop_script(script_id)
+    
+    # Dosyayı sil
+    try:
+        if os.path.exists(script_info['path']):
+            os.remove(script_info['path'])
+    except:
+        pass
+    
+    # Log dosyasını sil
+    log_file = os.path.join(LOG_FOLDER, f"{script_id}.log")
+    try:
+        if os.path.exists(log_file):
+            os.remove(log_file)
+    except:
+        pass
+    
+    # Database'den sil
+    global scripts_database
+    scripts_database = [s for s in scripts_database if s['id'] != script_id]
+    save_database()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Script silindi!',
+        'script_id': script_id
+    })
+
+@app.route('/admin')
+def admin_panel():
+    """Admin paneli"""
+    # Basit auth kontrolü
+    if not session.get('admin_logged_in'):
+        return redirect(url_for('admin_login'))
+    
+    # İstatistikler
+    stats = {
+        'total_scripts': len(scripts_database),
+        'running_scripts': len([s for s in scripts_database if s.get('status') == 'running']),
+        'stopped_scripts': len([s for s in scripts_database if s.get('status') == 'stopped']),
+        'total_size_mb': f"{sum(s.get('size', 0) for s in scripts_database) / (1024*1024):.2f} MB",
+        'server_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'python_version': sys.version
+    }
+    
+    return render_template('admin.html', 
+                         stats=stats,
+                         scripts=scripts_database,
+                         running_processes=list(running_processes.keys()))
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    """Admin girişi"""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        # Basit auth (production'da daha güvenli olmalı)
+        admin_user = os.environ.get('ADMIN_USER', 'admin')
+        admin_pass = os.environ.get('ADMIN_PASS', 'admin123')
+        
+        if username == admin_user and password == admin_pass:
+            session['admin_logged_in'] = True
+            session['admin_username'] = username
+            return redirect(url_for('admin_panel'))
+        
+        return render_template('admin_login.html', error='Hatalı kullanıcı adı veya şifre!')
+    
+    return render_template('admin_login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    """Admin çıkış"""
+    session.clear()
+    return redirect(url_for('index'))
+
+@app.route('/telegram-bot', methods=['GET', 'POST'])
+def telegram_bot_page():
+    """Telegram bot sayfası"""
+    if request.method == 'POST':
+        try:
+            if 'file' not in request.files:
+                return jsonify({'success': False, 'error': 'Dosya seçilmedi'}), 400
+            
+            file = request.files['file']
+            if file.filename == '':
+                return jsonify({'success': False, 'error': 'Dosya seçilmedi'}), 400
+            
+            if not file.filename.endswith('.py'):
+                return jsonify({'success': False, 'error': 'Sadece .py dosyaları yüklenebilir'}), 400
+            
+            # Bot token kontrolü
+            bot_token = request.form.get('bot_token', '').strip()
+            if not bot_token:
+                return jsonify({'success': False, 'error': 'Bot token gereklidir'}), 400
+            
+            # Güvenli dosya adı
+            filename = secure_filename(file.filename)
+            
+            # Benzersiz ID oluştur
+            bot_id = f"telegram_bot_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}"
+            file_id = f"{bot_id}_{filename}"
+            filepath = os.path.join(UPLOAD_FOLDER, file_id)
+            
+            # Dosyayı kaydet
+            file.save(filepath)
+            
+            # Dosyayı oku ve token'ı ekle
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            # Token'ı dosyaya ekle (eğer yoksa)
+            if 'TOKEN =' not in content:
+                content = f"TOKEN = '{bot_token}'\n" + content
+            
+            # Güncellenmiş içeriği kaydet
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(content)
+            
+            # Bot bilgileri
+            bot_info = {
+                'id': bot_id,
+                'file_id': file_id,
+                'original_name': filename,
+                'filename': filename,
+                'path': filepath,
+                'size': os.path.getsize(filepath),
+                'upload_time': datetime.datetime.now().isoformat(),
+                'status': 'stopped',
+                'type': 'telegram_bot',
+                'bot_token': bot_token[:10] + '...'  # Güvenlik için kısalt
+            }
+            
+            # Database'e kaydet
+            save_script_info(bot_info)
+            
+            # Bot'u başlat
+            run_python_script(bot_id, filepath)
+            
+            return jsonify({
+                'success': True,
+                'message': 'Telegram bot yüklendi ve başlatıldı!',
+                'bot_id': bot_id,
+                'filename': filename
+            })
+            
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)}), 500
+    
+    return render_template('telegram_bot.html')
+
 @app.route('/health')
 def health():
+    """Health check"""
     return jsonify({
         'status': 'healthy',
         'service': 'python-hosting-platform',
-        'version': '3.0',
+        'version': '4.0',
         'timestamp': datetime.datetime.now().isoformat(),
-        'endpoints': ['/', '/upload', '/api/upload', '/telegram-bot', '/admin', '/health']
+        'stats': {
+            'total_scripts': len(scripts_database),
+            'running_scripts': len(running_processes),
+            'total_uploads': len([f for f in os.listdir(UPLOAD_FOLDER) if f.endswith('.py')]),
+            'database_size': len(scripts_database)
+        },
+        'endpoints': [
+            '/', '/upload', '/admin', '/telegram-bot', '/health',
+            '/api/scripts', '/api/upload', '/api/script/*'
+        ]
     })
 
-# ========== TELEGRAM BOT API ==========
-@app.route('/api/create-bot', methods=['POST'])
-def create_bot():
-    # Basit bir response
-    return '''
-    <h1>🤖 Bot Oluşturuldu!</h1>
-    <p>Telegram botunuz başlatıldı. Özellikler:</p>
-    <ul>
-        <li>/start - Botu başlat</li>
-        <li>/help - Yardım</li>
-        <li>/status - Bot durumu</li>
-    </ul>
-    <p><a href="/">Ana Sayfa</a></p>
-    '''
-
-# ========== 404 HANDLER ==========
 @app.errorhandler(404)
-def not_found(e):
-    return '''
-    <h1>404 - Sayfa Bulunamadı</h1>
-    <p>Aradığınız sayfa mevcut değil.</p>
-    <p><a href="/">Ana Sayfaya Dön</a></p>
-    ''', 404
+def not_found(error):
+    return jsonify({'success': False, 'error': 'Sayfa bulunamadı'}), 404
 
-# ========== MAIN ==========
+@app.errorhandler(500)
+def internal_error(error):
+    return jsonify({'success': False, 'error': 'Sunucu hatası'}), 500
+
+# ==================== MAIN ====================
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    debug = os.environ.get('DEBUG', 'false').lower() == 'true'
+    print(f"🚀 Python Hosting Platform başlatılıyor...")
+    print(f"📁 Upload Klasörü: {UPLOAD_FOLDER}")
+    print(f"📊 Toplam Script: {len(scripts_database)}")
+    print(f"🌐 Port: {port}")
+    app.run(host='0.0.0.0', port=port, debug=debug)

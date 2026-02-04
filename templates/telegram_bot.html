@@ -1,0 +1,469 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Bot Hosting</title>
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #10b981;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .navbar {
+            background: white;
+            border-radius: 15px;
+            padding: 15px 30px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            margin-left: 20px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .nav-links a:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .bot-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        textarea {
+            min-height: 200px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+        
+        .btn {
+            background: var(--success);
+            color: white;
+            padding: 16px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: block;
+            margin: 30px auto;
+            width: 200px;
+        }
+        
+        .btn:hover:not(:disabled) {
+            background: #0da271;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .upload-area {
+            border: 3px dashed var(--success);
+            border-radius: 15px;
+            padding: 40px 30px;
+            text-align: center;
+            margin: 30px 0;
+            background: #f0fff4;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-area:hover {
+            background: #e6ffed;
+            border-color: #0da271;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            color: var(--success);
+            margin-bottom: 20px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .selected-file {
+            margin: 20px 0;
+            padding: 20px;
+            background: #e8f5e9;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 10px;
+            display: none;
+            text-align: center;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid var(--success);
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 30px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .info-box {
+            background: #e6f3ff;
+            border-left: 4px solid var(--primary);
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+        }
+        
+        .info-box h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .info-box ul {
+            padding-left: 20px;
+        }
+        
+        .info-box li {
+            margin-bottom: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .bot-container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .nav-links {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="logo">🤖 Telegram Bot</div>
+            <div class="nav-links">
+                <a href="/">Ana Sayfa</a>
+                <a href="/upload">Python Yükle</a>
+                <a href="/telegram-bot" style="background: var(--success); color: white;">Telegram Bot</a>
+                <a href="/admin">Admin</a>
+            </div>
+        </nav>
+        
+        <div class="bot-container">
+            <h1>🤖 Telegram Bot Hosting</h1>
+            <p class="subtitle">Telegram botunuzu yükleyin, 24/7 çalıştırın!</p>
+            
+            <div class="info-box">
+                <h3>📋 Nasıl Çalışır?</h3>
+                <ul>
+                    <li>1. @BotFather'dan yeni bot oluşturun</li>
+                    <li>2. Bot token'ınızı alın</li>
+                    <li>3. Python bot kodunuzu yükleyin veya yazın</li>
+                    <li>4. Bot otomatik başlatılacak!</li>
+                </ul>
+            </div>
+            
+            <form id="botForm">
+                <div class="form-group">
+                    <label for="botToken">🤖 Bot Token</label>
+                    <input type="text" id="botToken" placeholder="1234567890:ABCdefGhIJKlmNoPQRsTUVwxyZ" required>
+                    <small>@BotFather'dan aldığınız token</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>📁 Python Bot Kodu</label>
+                    <p>Bot kodunuzu yükleyin veya aşağıya yazın:</p>
+                    
+                    <div class="upload-area" id="codeUploadArea">
+                        <div class="upload-icon">📁</div>
+                        <h4>Python bot dosyasını yükleyin</h4>
+                        <p>veya aşağıya kod yazın</p>
+                        <input type="file" id="codeFileInput" class="file-input" accept=".py">
+                    </div>
+                    
+                    <div class="selected-file" id="selectedFile">
+                        <h4>✅ Seçilen Dosya:</h4>
+                        <p><strong>Dosya:</strong> <span id="fileName"></span></p>
+                    </div>
+                    
+                    <textarea id="botCode" placeholder="# Telegram bot kodunuzu buraya yazın
+import telebot
+
+TOKEN = 'YOUR_TOKEN_HERE'
+
+bot = telebot.TeleBot(TOKEN)
+
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.reply_to(message, 'Merhaba! Ben Python Hosting\'de çalışan bir botum!')
+
+# Diğer komutlarınız...
+
+print('🤖 Bot başlatılıyor...')
+bot.polling()"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="botName">🔤 Bot Adı (Opsiyonel)</label>
+                    <input type="text" id="botName" placeholder="MyPythonBot">
+                </div>
+                
+                <button type="button" class="btn" id="createBotBtn">
+                    🤖 Bot Oluştur ve Başlat
+                </button>
+            </form>
+            
+            <div class="result" id="result">
+                <h3 id="resultTitle"></h3>
+                <p id="resultMessage"></p>
+                <div id="resultDetails" style="text-align: left; margin-top: 20px;"></div>
+            </div>
+            
+            <a href="/" class="back-link">← Ana Sayfaya Dön</a>
+        </div>
+    </div>
+    
+    <script>
+        const codeUploadArea = document.getElementById('codeUploadArea');
+        const codeFileInput = document.getElementById('codeFileInput');
+        const selectedFile = document.getElementById('selectedFile');
+        const fileName = document.getElementById('fileName');
+        const botCode = document.getElementById('botCode');
+        const botToken = document.getElementById('botToken');
+        const botName = document.getElementById('botName');
+        const createBotBtn = document.getElementById('createBotBtn');
+        const resultDiv = document.getElementById('result');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultMessage = document.getElementById('resultMessage');
+        const resultDetails = document.getElementById('resultDetails');
+        
+        // Dosya seçme
+        codeUploadArea.addEventListener('click', () => codeFileInput.click());
+        
+        codeFileInput.addEventListener('change', async (e) => {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                
+                if (!file.name.endsWith('.py')) {
+                    showError('Sadece .py dosyaları yüklenebilir!');
+                    return;
+                }
+                
+                fileName.textContent = file.name;
+                selectedFile.style.display = 'block';
+                
+                try {
+                    // Dosya içeriğini oku
+                    const content = await file.text();
+                    botCode.value = content;
+                    
+                    // Token'ı otomatik bul (eğer varsa)
+                    const tokenMatch = content.match(/TOKEN\s*=\s*['"]([^'"]+)['"]/);
+                    if (tokenMatch && tokenMatch[1]) {
+                        botToken.value = tokenMatch[1];
+                    }
+                } catch (error) {
+                    showError('Dosya okunamadı: ' + error.message);
+                }
+            }
+        });
+        
+        // Bot oluşturma
+        createBotBtn.addEventListener('click', async () => {
+            const token = botToken.value.trim();
+            const code = botCode.value.trim();
+            const name = botName.value.trim() || 'PythonHostingBot';
+            
+            if (!token) {
+                showError('Bot token gereklidir!');
+                return;
+            }
+            
+            if (!code) {
+                showError('Bot kodu gereklidir!');
+                return;
+            }
+            
+            createBotBtn.disabled = true;
+            createBotBtn.textContent = 'Oluşturuluyor...';
+            resultDiv.style.display = 'none';
+            
+            const formData = new FormData();
+            
+            // Dosya yüklendiyse onu kullan
+            if (codeFileInput.files.length > 0) {
+                formData.append('file', codeFileInput.files[0]);
+            } else {
+                // Yoksa kodu dosyaya çevir
+                const blob = new Blob([code], { type: 'text/python' });
+                formData.append('file', blob, 'bot.py');
+            }
+            
+            formData.append('bot_token', token);
+            formData.append('name', name);
+            
+            try {
+                const response = await fetch('/telegram-bot', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess(\✅ \\, \
+                        <p><strong>Bot ID:</strong> \</p>
+                        <p><strong>Dosya:</strong> \</p>
+                        <p><strong>Durum:</strong> Bot başlatıldı ve çalışıyor!</p>
+                        <p><strong>Komutlar:</strong> /start, /help, /status, /time</p>
+                        <p><em>Botunuz şu anda aktif ve mesajlarınızı bekliyor!</em></p>
+                    \);
+                    
+                    // Formu sıfırla
+                    botToken.value = '';
+                    botCode.value = '';
+                    botName.value = '';
+                    codeFileInput.value = '';
+                    selectedFile.style.display = 'none';
+                    
+                } else {
+                    showError(\❌ \\);
+                }
+                
+            } catch (error) {
+                showError(\❌ Bağlantı hatası: \\);
+            } finally {
+                createBotBtn.disabled = false;
+                createBotBtn.textContent = '🤖 Bot Oluştur ve Başlat';
+            }
+        });
+        
+        function showSuccess(title, details) {
+            resultDiv.className = 'result success';
+            resultTitle.textContent = title;
+            resultMessage.textContent = '';
+            resultDetails.innerHTML = details;
+            resultDiv.style.display = 'block';
+            
+            // Sayfayı yukarı kaydır
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function showError(message) {
+            resultDiv.className = 'result error';
+            resultTitle.textContent = 'Hata!';
+            resultMessage.textContent = message;
+            resultDetails.innerHTML = '';
+            resultDiv.style.display = 'block';
+            
+            // Sayfayı yukarı kaydır
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

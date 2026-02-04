@@ -1,0 +1,438 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Dosyası Yükle</title>
+    <style>
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .navbar {
+            background: white;
+            border-radius: 15px;
+            padding: 15px 30px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            margin-left: 20px;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .nav-links a:hover {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .upload-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .upload-area {
+            border: 3px dashed var(--primary);
+            border-radius: 15px;
+            padding: 60px 30px;
+            text-align: center;
+            margin: 30px 0;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-area:hover {
+            background: #eef1ff;
+            border-color: #5a67d8;
+        }
+        
+        .upload-area.dragover {
+            background: #e1e7ff;
+            border-color: #4c51bf;
+            transform: scale(1.02);
+        }
+        
+        .upload-icon {
+            font-size: 64px;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .selected-file {
+            margin: 20px 0;
+            padding: 20px;
+            background: #e8f5e9;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .btn {
+            background: var(--primary);
+            color: white;
+            padding: 16px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: block;
+            margin: 30px auto;
+            width: 200px;
+        }
+        
+        .btn:hover:not(:disabled) {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 10px;
+            display: none;
+            text-align: center;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid var(--success);
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid var(--danger);
+        }
+        
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 30px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            margin-top: 20px;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .progress {
+            height: 100%;
+            background: var(--success);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        @media (max-width: 768px) {
+            .upload-container {
+                padding: 20px;
+            }
+            
+            .upload-area {
+                padding: 40px 20px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="navbar">
+            <div class="logo">🐍 Python Hosting</div>
+            <div class="nav-links">
+                <a href="/">Ana Sayfa</a>
+                <a href="/upload" style="background: var(--primary); color: white;">Yükle</a>
+                <a href="/telegram-bot">Telegram Bot</a>
+                <a href="/admin">Admin</a>
+            </div>
+        </nav>
+        
+        <div class="upload-container">
+            <h1>📤 Python Dosyası Yükle</h1>
+            <p class="subtitle">.py uzantılı Python dosyanızı yükleyin, otomatik çalıştırın</p>
+            
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-icon">📁</div>
+                <h3>Dosyayı sürükleyip bırakın</h3>
+                <p>veya tıklayarak seçin</p>
+                <p><small>Sadece .py, .txt, .json dosyaları (Max: 16MB)</small></p>
+                <input type="file" id="fileInput" class="file-input" accept=".py,.txt,.json">
+            </div>
+            
+            <div class="selected-file" id="selectedFile">
+                <h4>✅ Seçilen Dosya:</h4>
+                <p><strong>Dosya:</strong> <span id="fileName"></span></p>
+                <p><strong>Boyut:</strong> <span id="fileSize"></span></p>
+                <p><strong>Tür:</strong> <span id="fileType"></span></p>
+            </div>
+            
+            <div class="progress-bar" id="progressBar">
+                <div class="progress" id="progress"></div>
+            </div>
+            
+            <button class="btn" id="uploadBtn" disabled>
+                <span id="btnText">Yükle ve Çalıştır</span>
+            </button>
+            
+            <div class="result" id="result">
+                <h3 id="resultTitle"></h3>
+                <p id="resultMessage"></p>
+                <div id="resultDetails" style="text-align: left; margin-top: 20px;"></div>
+            </div>
+            
+            <a href="/" class="back-link">← Ana Sayfaya Dön</a>
+        </div>
+    </div>
+    
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const selectedFile = document.getElementById('selectedFile');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const fileType = document.getElementById('fileType');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const btnText = document.getElementById('btnText');
+        const resultDiv = document.getElementById('result');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultMessage = document.getElementById('resultMessage');
+        const resultDetails = document.getElementById('resultDetails');
+        const progressBar = document.getElementById('progressBar');
+        const progress = document.getElementById('progress');
+        
+        // Dosya seçme
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                updateFileInfo(e.target.files[0]);
+            }
+        });
+        
+        // Sürükle-bırak
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            if (e.dataTransfer.files.length > 0) {
+                const file = e.dataTransfer.files[0];
+                const ext = file.name.split('.').pop().toLowerCase();
+                
+                if (['py', 'txt', 'json'].includes(ext)) {
+                    fileInput.files = e.dataTransfer.files;
+                    updateFileInfo(file);
+                } else {
+                    showError('Sadece .py, .txt, .json dosyaları yüklenebilir!');
+                }
+            }
+        });
+        
+        function updateFileInfo(file) {
+            fileName.textContent = file.name;
+            fileSize.textContent = formatBytes(file.size);
+            fileType.textContent = getFileType(file.name);
+            selectedFile.style.display = 'block';
+            uploadBtn.disabled = false;
+            
+            // Result'ı gizle
+            resultDiv.style.display = 'none';
+        }
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function getFileType(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            switch(ext) {
+                case 'py': return '🐍 Python Script';
+                case 'txt': return '📝 Text Dosyası';
+                case 'json': return '📊 JSON Verisi';
+                default: return '📁 Dosya';
+            }
+        }
+        
+        // Upload işlemi
+        uploadBtn.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+            
+            // Kontroller
+            if (file.size > 16 * 1024 * 1024) {
+                showError('Dosya boyutu 16MB\'dan büyük olamaz!');
+                return;
+            }
+            
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (!['py', 'txt', 'json'].includes(ext)) {
+                showError('Geçersiz dosya türü!');
+                return;
+            }
+            
+            // Upload başlat
+            uploadBtn.disabled = true;
+            btnText.textContent = 'Yükleniyor...';
+            progressBar.style.display = 'block';
+            progress.style.width = '30%';
+            resultDiv.style.display = 'none';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                progress.style.width = '60%';
+                
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                progress.style.width = '90%';
+                
+                const data = await response.json();
+                
+                progress.style.width = '100%';
+                
+                if (data.success) {
+                    showSuccess(\✅ \\, \
+                        <p><strong>Dosya:</strong> \</p>
+                        <p><strong>Boyut:</strong> \</p>
+                        <p><strong>Script ID:</strong> \</p>
+                        <p><strong>Durum:</strong> Yüklendi ve çalışmaya hazır!</p>
+                    \);
+                    
+                    // Formu sıfırla
+                    fileInput.value = '';
+                    selectedFile.style.display = 'none';
+                    uploadBtn.disabled = true;
+                    btnText.textContent = 'Yükle ve Çalıştır';
+                    
+                    // 3 saniye sonra progress bar'ı gizle
+                    setTimeout(() => {
+                        progressBar.style.display = 'none';
+                        progress.style.width = '0%';
+                    }, 3000);
+                    
+                } else {
+                    showError(\❌ \\);
+                    uploadBtn.disabled = false;
+                    btnText.textContent = 'Yükle ve Çalıştır';
+                }
+                
+            } catch (error) {
+                showError(\❌ Bağlantı hatası: \\);
+                uploadBtn.disabled = false;
+                btnText.textContent = 'Yükle ve Çalıştır';
+                progressBar.style.display = 'none';
+                progress.style.width = '0%';
+            }
+        });
+        
+        function showSuccess(title, details) {
+            resultDiv.className = 'result success';
+            resultTitle.textContent = title;
+            resultMessage.textContent = '';
+            resultDetails.innerHTML = details;
+            resultDiv.style.display = 'block';
+            
+            // Sayfayı yukarı kaydır
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function showError(message) {
+            resultDiv.className = 'result error';
+            resultTitle.textContent = 'Hata!';
+            resultMessage.textContent = message;
+            resultDetails.innerHTML = '';
+            resultDiv.style.display = 'block';
+            
+            // Sayfayı yukarı kaydır
+            resultDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
