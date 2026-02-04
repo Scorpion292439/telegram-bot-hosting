@@ -4,230 +4,115 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Python Hosting Platform</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            color: #333;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            text-align: center;
             padding: 20px;
         }
-        .navbar {
-            background: white;
-            border-radius: 15px;
-            padding: 15px 30px;
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-            color: #667eea;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .logo i { font-size: 28px; }
-        .nav-links {
-            display: flex;
-            gap: 20px;
-        }
-        .nav-links a {
-            text-decoration: none;
-            color: #333;
-            padding: 10px 15px;
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-        .nav-links a:hover {
-            background: #667eea;
-            color: white;
-        }
-        .hero {
-            background: white;
+        .container {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 50px;
             border-radius: 20px;
-            padding: 60px 40px;
-            text-align: center;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
         }
-        .hero h1 {
+        h1 {
             font-size: 48px;
             margin-bottom: 20px;
-            color: #333;
+            color: white;
         }
-        .hero p {
-            font-size: 20px;
-            color: #666;
+        h2 {
+            font-size: 24px;
             margin-bottom: 30px;
+            opacity: 0.9;
         }
         .features {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            margin-bottom: 40px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
         }
-        .feature-card {
-            background: white;
-            padding: 30px;
+        .feature {
+            background: rgba(255,255,255,0.15);
+            padding: 20px;
             border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
             transition: transform 0.3s;
         }
-        .feature-card:hover {
-            transform: translateY(-10px);
+        .feature:hover {
+            transform: translateY(-5px);
+            background: rgba(255,255,255,0.25);
         }
-        .feature-card i {
-            font-size: 48px;
-            color: #667eea;
-            margin-bottom: 20px;
-        }
-        .feature-card h3 {
-            margin-bottom: 15px;
-            color: #333;
+        .feature h3 {
+            margin-bottom: 10px;
+            font-size: 20px;
         }
         .btn {
             display: inline-block;
-            background: #667eea;
-            color: white;
+            background: white;
+            color: #667eea;
             padding: 15px 30px;
-            border-radius: 10px;
+            border-radius: 50px;
             text-decoration: none;
-            font-size: 18px;
             font-weight: bold;
+            font-size: 18px;
+            margin: 10px;
             transition: all 0.3s;
             border: none;
             cursor: pointer;
         }
         .btn:hover {
-            background: #5a67d8;
-            transform: translateY(-3px);
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
-        .btn-large {
-            padding: 20px 40px;
-            font-size: 20px;
-        }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-top: 40px;
-        }
-        .stat-box {
-            background: rgba(255,255,255,0.9);
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-        }
-        .stat-number {
-            font-size: 36px;
-            font-weight: bold;
-            color: #667eea;
-        }
-        footer {
-            text-align: center;
-            margin-top: 50px;
-            color: white;
-            padding: 20px;
+        .nav {
+            margin-top: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <nav class="navbar">
-            <div class="logo">
-                <i class="fas fa-code"></i>
-                <span>Python Hosting</span>
-            </div>
-            <div class="nav-links">
-                <a href="/">Ana Sayfa</a>
-                <a href="/upload">Python Yükle</a>
-                <a href="/telegram-bot">Telegram Bot</a>
-                <a href="/admin">Admin</a>
-                <a href="/health">Status</a>
-            </div>
-        </nav>
-        
-        <div class="hero">
-            <h1>🚀 Python Hosting Platformu</h1>
-            <p>Python dosyalarınızı yükleyin, 24/7 çalıştırın, loglarını görüntüleyin!</p>
-            <a href="/upload" class="btn btn-large">
-                <i class="fas fa-upload"></i> Python Dosyası Yükle
-            </a>
-        </div>
+        <h1>🚀 PYTHON HOSTING PLATFORMU</h1>
+        <h2>Python dosyalarını yükle, 24/7 çalıştır, loglarını izle!</h2>
         
         <div class="features">
-            <div class="feature-card">
-                <i class="fas fa-file-code"></i>
-                <h3>Python Yükle & Çalıştır</h3>
-                <p>Python dosyanızı sürükleyip bırakın, otomatik çalışsın.</p>
+            <div class="feature">
+                <h3>📁 Python Yükle</h3>
+                <p>Python dosyanı sürükle-bırak, otomatik çalışsın</p>
             </div>
-            <div class="feature-card">
-                <i class="fas fa-robot"></i>
-                <h3>Telegram Bot Hosting</h3>
-                <p>Telegram botunuzu oluşturun ve 24/7 çalıştırın.</p>
+            <div class="feature">
+                <h3>🤖 Telegram Bot</h3>
+                <p>Telegram bot oluştur ve 24/7 çalıştır</p>
             </div>
-            <div class="feature-card">
-                <i class="fas fa-chart-line"></i>
-                <h3>Real-time Loglar</h3>
-                <p>Script'lerinizin çıktılarını anlık takip edin.</p>
+            <div class="feature">
+                <h3>📊 Real-time Log</h3>
+                <p>Script çıktılarını anlık takip et</p>
             </div>
         </div>
         
-        <div class="stats">
-            <div class="stat-box">
-                <div class="stat-number" id="total-scripts">0</div>
-                <div>Toplam Script</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-number" id="running-scripts">0</div>
-                <div>Çalışan Script</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-number">24/7</div>
-                <div>Çalışma Süresi</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-number">🔥</div>
-                <div>Firebase Destekli</div>
-            </div>
+        <div class="nav">
+            <a href="/upload" class="btn">📤 Python Yükle</a>
+            <a href="/telegram-bot" class="btn">🤖 Telegram Bot</a>
+            <a href="/admin" class="btn">⚙️ Admin Panel</a>
+            <a href="/health" class="btn">📊 Health Check</a>
+        </div>
+        
+        <div style="margin-top: 30px; font-size: 14px; opacity: 0.8;">
+            <p>🔥 Firebase entegre | 📱 Responsive tasarım | ⚡ Hızlı deploy</p>
         </div>
     </div>
-    
-    <footer>
-        <p>© 2024 Python Hosting Platform | Render.com üzerinde barındırılıyor</p>
-    </footer>
-    
-    <script>
-        // Stats güncelle
-        async function updateStats() {
-            try {
-                const response = await fetch('/api/scripts');
-                const data = await response.json();
-                document.getElementById('total-scripts').textContent = data.scripts.length;
-                
-                const running = data.scripts.filter(s => s.status === 'running').length;
-                document.getElementById('running-scripts').textContent = running;
-            } catch (error) {
-                console.error('Stats güncellenemedi:', error);
-            }
-        }
-        
-        // Sayfa yüklendiğinde çalıştır
-        document.addEventListener('DOMContentLoaded', function() {
-            updateStats();
-            setInterval(updateStats, 10000); // Her 10 saniyede bir güncelle
-        });
-    </script>
 </body>
 </html>
