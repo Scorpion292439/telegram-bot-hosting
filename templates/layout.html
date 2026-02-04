@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Python Web App{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js"></script>
+    <script>
+        const firebaseConfig = {{ firebase_config|tojson }};
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                const app = firebase.initializeApp(firebaseConfig);
+                window.firebaseApp = app;
+                console.log('🔥 Firebase başlatıldı');
+            } catch (error) {
+                console.warn('Firebase başlatılamadı:', error);
+            }
+        });
+    </script>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">PythonApp</a>
+            <div class="nav-links">
+                <a href="/">Ana Sayfa</a>
+                <a href="/admin">Admin</a>
+                <a href="/api/health">API Health</a>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <footer>
+        <div class="container">
+            <p>© 2024 Python Flask App | Render.com üzerinde barındırılıyor</p>
+            <p>Server Time: {{ server_time if server_time else '' }}</p>
+        </div>
+    </footer>
+    
+    <script src="{{ url_for('static', filename='js/firebase.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

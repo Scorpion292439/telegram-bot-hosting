@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: python-flask-app
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.16
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_USER
+        value: admin
+      - key: ADMIN_PASS
+        sync: false  # Render dashboard'dan set edeceksiniz
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false  # Firebase service account JSON'u buraya
+    healthCheckPath: /api/health
+    autoDeploy: true
+    domains:
+      - python-flask-app.onrender.com

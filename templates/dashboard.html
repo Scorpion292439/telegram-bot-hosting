@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kullanıcı Paneli - Telegram Bot Hosting</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Dashboard Özel Stilleri */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Navbar */
+        .navbar {
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #0088cc;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #555;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #0088cc;
+        }
+
+        .user-info {
+            background-color: #f0f7ff;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #0088cc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Butonlar */
+        .btn {
+            display: inline-block;
+            padding: 0.6rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background-color: #0088cc;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0077b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border-color: #0088cc;
+            color: #0088cc;
+        }
+
+        .btn-outline:hover {
+            background-color: #0088cc;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+            border: none;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background-color: #ffc107;
+            color: #212529;
+            border: none;
+        }
+
+        .btn-warning:hover {
+            background-color: #e0a800;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .btn-sm {
+            padding: 0.4rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        /* Dashboard Header */
+        .dashboard-header {
+            margin: 2rem 0 3rem;
+            padding: 2rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .dashboard-header h1 {
+            color: #0d1b2a;
+            margin-bottom: 1.5rem;
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+
+        .user-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #0088cc;
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        /* Dashboard Section */
+        .dashboard-section {
+            background-color: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-section h2 {
+            margin-bottom: 1.8rem;
+            color: #0d1b2a;
+            font-size: 1.8rem;
+            font-weight: 700;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f0f7ff;
+        }
+
+        /* Formlar */
+        .upload-form {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 1.8rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.8rem;
+            font-weight: 600;
+            color: #495057;
+            font-size: 1rem;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="email"],
+        .form-group input[type="password"],
+        .form-group input[type="number"],
+        .form-group select {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            background-color: #f8f9fa;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #0088cc;
+            outline: none;
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
+        }
+
+        .form-group input[type="file"] {
+            padding: 0.8rem;
+            background-color: white;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            width: 100%;
+        }
+
+        .form-group input[type="file"]:hover {
+            border-color: #0088cc;
+        }
+
+        /* Bot Kartları */
+        .bots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.8rem;
+        }
+
+        .bot-card {
+            background: white;
+            border-radius: 14px;
+            padding: 1.8rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            border: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .bot-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+            border-color: #0088cc;
+        }
+
+        .bot-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #f0f7ff;
+        }
+
+        .bot-header h3 {
+            color: #0d1b2a;
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .bot-status {
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .bot-status.running {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .bot-status.stopped {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .bot-info {
+            margin-bottom: 1.5rem;
+        }
+
+        .bot-info p {
+            margin-bottom: 0.8rem;
+            color: #6c757d;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .bot-actions {
+            display: flex;
+            gap: 0.8rem;
+            margin-top: 1.2rem;
+        }
+
+        .bot-actions .btn {
+            flex: 1;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        /* Mesajlar */
+        .message {
+            padding: 1.2rem;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+            font-weight: 500;
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Boş Durum */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #6c757d;
+            grid-column: 1 / -1;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px dashed #dee2e6;
+        }
+
+        .empty-state i {
+            color: #adb5bd;
+            margin-bottom: 1.5rem;
+            font-size: 3.5rem;
+        }
+
+        .empty-state h3 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: #495057;
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 15px;
+            }
+            
+            .dashboard-header,
+            .dashboard-section {
+                padding: 1.5rem;
+            }
+            
+            .user-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .bots-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .bot-actions {
+                flex-direction: column;
+            }
+            
+            .bot-actions .btn {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard-header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .dashboard-section h2 {
+                font-size: 1.5rem;
+            }
+            
+            .stat-value {
+                font-size: 2rem;
+            }
+            
+            .bot-card {
+                padding: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">
+                <i class="fab fa-telegram"></i> BotHost
+            </a>
+            <div class="nav-links">
+                <a href="/dashboard">Panel</a>
+                <a href="#bots">Botlarım</a>
+                {% if user.role == 'admin' %}
+                <a href="/admin">Yönetim Paneli</a>
+                {% endif %}
+                <span class="user-info">
+                    <i class="fas fa-user"></i> {{ user.name }} ({{ user_roles[user.role].name }})
+                </span>
+                <a href="/logout" class="btn btn-outline">Çıkış Yap</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="dashboard-header">
+            <h1>Hoş Geldiniz, {{ user.name }}</h1>
+            <div class="user-stats">
+                <div class="stat-card">
+                    <div class="stat-value">{{ bots|length }}</div>
+                    <div class="stat-label">Aktif Bot</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ user_roles[user.role].max_bots }}</div>
+                    <div class="stat-label">Maksimum Bot</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ user.role|upper }}</div>
+                    <div class="stat-label">Üyelik Türü</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-section">
+            <h2>Yeni Bot Yükle</h2>
+            <form id="uploadForm" class="upload-form">
+                <div class="form-group">
+                    <label for="bot_name">Bot Adı</label>
+                    <input type="text" id="bot_name" name="bot_name" required placeholder="Botunuzun adını girin">
+                </div>
+                <div class="form-group">
+                    <label for="bot_token">Telegram Bot Token (Opsiyonel)</label>
+                    <input type="text" id="bot_token" name="bot_token" placeholder="Bot tokeninizi girin">
+                </div>
+                <div class="form-group">
+                    <label for="bot_file">Python Dosyası (.py)</label>
+                    <input type="file" id="bot_file" name="bot_file" accept=".py" required>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-upload"></i> Botu Yükle
+                </button>
+                <div id="uploadMessage" class="message"></div>
+            </form>
+        </div>
+
+        <div class="dashboard-section">
+            <h2>Botlarım</h2>
+            <div id="botsList" class="bots-grid">
+                {% if bots %}
+                    {% for bot in bots %}
+                    <div class="bot-card" id="bot-{{ bot.id }}">
+                        <div class="bot-header">
+                            <h3>{{ bot.name }}</h3>
+                            <span class="bot-status {{ bot.status }}">
+                                {% if bot.status == 'running' %}
+                                    <i class="fas fa-play-circle"></i> Çalışıyor
+                                {% else %}
+                                    <i class="fas fa-stop-circle"></i> Durduruldu
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="bot-info">
+                            <p><i class="far fa-calendar"></i> Oluşturulma: {{ bot.created_at[:10] }}</p>
+                            {% if bot.last_started %}
+                            <p><i class="far fa-clock"></i> Son Başlatılma: {{ bot.last_started[:10] }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="bot-actions">
+                            {% if bot.status == 'stopped' %}
+                            <button class="btn btn-success btn-sm" onclick="startBot('{{ bot.id }}')">
+                                <i class="fas fa-play"></i> Başlat
+                            </button>
+                            {% else %}
+                            <button class="btn btn-warning btn-sm" onclick="stopBot('{{ bot.id }}')">
+                                <i class="fas fa-stop"></i> Durdur
+                            </button>
+                            {% endif %}
+                            <button class="btn btn-danger btn-sm" onclick="deleteBot('{{ bot.id }}')">
+                                <i class="fas fa-trash"></i> Sil
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-robot"></i>
+                        <h3>Henüz botunuz yok</h3>
+                        <p>Yukarıdaki formu kullanarak ilk botunuzu yükleyin</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Form submission
+            const uploadForm = document.getElementById('uploadForm');
+            if (uploadForm) {
+                uploadForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData();
+                    formData.append('bot_name', document.getElementById('bot_name').value);
+                    formData.append('bot_token', document.getElementById('bot_token').value);
+                    formData.append('bot_file', document.getElementById('bot_file').files[0]);
+                    
+                    const messageDiv = document.getElementById('uploadMessage');
+                    
+                    try {
+                        const response = await fetch('/upload_bot', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            showMessage('success', data.message);
+                            uploadForm.reset();
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            showMessage('error', data.error);
+                        }
+                    } catch (error) {
+                        showMessage('error', 'Bir hata oluştu: ' + error.message);
+                    }
+                });
+            }
+
+            // Show message function
+            function showMessage(type, text) {
+                const messageDiv = document.getElementById('uploadMessage');
+                messageDiv.textContent = text;
+                messageDiv.className = `message ${type} show`;
+                
+                setTimeout(() => {
+                    messageDiv.classList.remove('show');
+                }, 5000);
+            }
+        });
+
+        // Bot işlemleri için global fonksiyonlar
+        async function startBot(botId) {
+            if (!confirm('Bu botu başlatmak istediğinize emin misiniz?')) return;
+            
+            try {
+                const response = await fetch(`/start_bot/${botId}`);
+                const data = await response.json();
+                
+                alert(data.message);
+                if (data.success) {
+                    setTimeout(() => location.reload(), 1000);
+                }
+            } catch (error) {
+                alert('Bir hata oluştu: ' + error.message);
+            }
+        }
+
+        async function stopBot(botId) {
+            if (!confirm('Bu botu durdurmak istediğinize emin misiniz?')) return;
+            
+            try {
+                const response = await fetch(`/stop_bot/${botId}`);
+                const data = await response.json();
+                
+                alert(data.message);
+                if (data.success) {
+                    setTimeout(() => location.reload(), 1000);
+                }
+            } catch (error) {
+                alert('Bir hata oluştu: ' + error.message);
+            }
+        }
+
+        async function deleteBot(botId) {
+            if (!confirm('Bu botu silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) return;
+            
+            try {
+                const response = await fetch(`/delete_bot/${botId}`);
+                const data = await response.json();
+                
+                alert(data.message);
+                if (data.success) {
+                    const botElement = document.getElementById(`bot-${botId}`);
+                    if (botElement) {
+                        botElement.style.opacity = '0';
+                        botElement.style.transform = 'scale(0.9)';
+                        setTimeout(() => {
+                            botElement.remove();
+                            // Eğer hiç bot kalmadıysa sayfayı yenile
+                            if (document.querySelectorAll('.bot-card').length === 0) {
+                                location.reload();
+                            }
+                        }, 300);
+                    }
+                }
+            } catch (error) {
+                alert('Bir hata oluştu: ' + error.message);
+            }
+        }
+
+        // File input styling
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('bot_file');
+            if (fileInput) {
+                fileInput.addEventListener('change', function(e) {
+                    const fileName = e.target.files[0] ? e.target.files[0].name : 'Dosya seçilmedi';
+                    const label = this.previousElementSibling;
+                    if (label && label.tagName === 'LABEL') {
+                        label.textContent = `Python Dosyası: ${fileName}`;
+                    }
+                });
+            }
+
+            // Add animation to bot cards
+            const botCards = document.querySelectorAll('.bot-card');
+            botCards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        });
+    </script>
+</body>
+</html>
